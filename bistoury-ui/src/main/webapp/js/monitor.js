@@ -2,6 +2,7 @@ $(document).ready(function () {
     var keepRunning = false;
     var minute = 1 * 60 * 1000;
     var currentProject;
+    var currentProjectId;
     var currentModule;
     var currentBranch;
     var currentFile;
@@ -352,7 +353,7 @@ $(document).ready(function () {
 
     function buildFilePanel(file) {
         $("#file-path").val("");
-        $("#project").val(currentProject);
+        $("#project").val(currentProjectId);
         $("#branch").val(currentBranch);
         $("#app").val(currentHost.appCode);
         $("#host").val(currentHost.host + ":" + currentHost.port);
@@ -511,6 +512,7 @@ $(document).ready(function () {
         })
     }
 
+    // function getFileFromLocal(className, data) {}
     function getFileFromMaven(className, data) {
         var mavenInfo = data.mavenInfo;
         $.ajax({
@@ -762,6 +764,7 @@ $(document).ready(function () {
             if (res.code == 0) {
                 if (res.data && res.data.maven) {
                     getFileFromMaven(res.id, res.data);
+                    // getFileFromLocal(res.id, res.data);
                 } else {
                     decompileClass(res.id, res.data.classPath);
                 }
@@ -793,6 +796,7 @@ $(document).ready(function () {
                     var relaeaseInfo = res.data;
                     console.log(relaeaseInfo);
                     currentProject = relaeaseInfo.project;
+                    currentProjectId = relaeaseInfo.projectId
                     currentModule = relaeaseInfo.module;
                     currentBranch = relaeaseInfo.output;
                 } else {
@@ -1079,7 +1083,7 @@ $(document).ready(function () {
             $("#down-source").unbind("click");
 
             if (currentProject && currentBranch) {
-                getFile(currentProject, currentBranch, currentModule, currentClass, function () {
+                getFile(currentProjectId, currentBranch, currentModule, currentClass, function () {
                     getClassPath(currentClass)
                 })
             } else {

@@ -38,6 +38,8 @@ public class PropertiesReleaseInfoParser implements ReleaseInfoParse {
     private static final Logger logger = LoggerFactory.getLogger(PropertiesReleaseInfoParser.class);
 
     private static final String PROJECT_KEY = "project";
+
+    private static final String PROJECT_ID = "projectId";
     private static final String MODULE_KEY = "module";
     private static final String OUTPUT_KEY = "output";
 
@@ -60,6 +62,9 @@ public class PropertiesReleaseInfoParser implements ReleaseInfoParse {
 
         String output = properties.getProperty(OUTPUT_KEY);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(output), "output cannot be null or empty");
-        return new ReleaseInfo(project, module, output);
+
+        String projectId = properties.getProperty(PROJECT_ID);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(output), "output cannot be null or empty");
+        return new ReleaseInfo(project, module, output, projectId);
     }
 }

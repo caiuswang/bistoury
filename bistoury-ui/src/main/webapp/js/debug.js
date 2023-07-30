@@ -12,6 +12,7 @@ $(document).ready(function () {
     var currentFile;
     var currentClass;
     var currentProject;
+    var currentProjectId;
     var currentModule;
     var currentBranch;
     var base64 = new Base65();
@@ -21,11 +22,23 @@ $(document).ready(function () {
     var currentPoint = {};
     var varSearchResult = [];
     var varSearchResultIndex = 0;
+    var mavenProjectMap = {};
     window.setInterval(function () {
         if (keepRunning) {
             getDebugResult();
         }
     }, interval);
+
+    buildArtifactMap();
+    function buildArtifactMap() {
+        // groupId is the first key of the map
+        mavenProjectMap["com.lucky.lottery.tkl-lotto"] = {
+            // artifactId is the second key of the map
+            "lotto-command" : "tkl-lotto/lotto-command",
+            "lotto-api" : "tkl-lotto/lotto-api"
+        }
+
+    }
 
 
     function relaodClasses() {
@@ -46,9 +59,12 @@ $(document).ready(function () {
     }
 
     function decompileClass(className, classPath) {
-        var command = "decompilerclass " + encodeURI(className) + " " + encodeURI(classPath);
-
-        bistouryWS.send(currentHost, 50, command, {className: encodeURI(className), classPath: encodeURI(classPath)}, stop, handleResult);
+        // var command = "decompilerclass " + encodeURI(className) + " " + encodeURI(classPath);
+        // var newHandleResult = function (result) {
+        //     handleResultWithRequest(className, classPath, result);
+        // }
+        buildLocalFileContent(currentAppCode,className)
+        // bistouryWS.send(currentHost, 50, command, {className: encodeURI(className), classPath: encodeURI(classPath)}, stop, newHandleResult);
         // send(currentHost, 50, command);
     }
 
@@ -158,7 +174,7 @@ $(document).ready(function () {
         }
     }
 
-    function buildFilePanel(file) {
+    function buildFilePanel(project, currentClass, file) {
         $("#file-path").val("");
         $("#project").val(currentProject);
         $("#branch").val(currentBranch);
@@ -171,7 +187,7 @@ $(document).ready(function () {
         buildFileContent(file.fileName, base64.decode(file.content))
     }
 
-    function buildDecompilerFileContent(filename, fileContent) {
+    function buildDecompilerFileContent(project, currentClass) {
         $("#file-path").val("");
         $("#project").val(currentProject);
         $("#branch").val(currentBranch);
@@ -183,6 +199,25 @@ $(document).ready(function () {
         decompilerFile = true;
         fileContent = base64.decode(fileContent);
         buildFileContent(filename, buildLineMapping(fileContent));
+    }
+
+    function buildLocalFileContent(project, className) {
+        $("#file-path").val("");
+        $("#project").val(currentProject);
+        $("#branch").val(currentBranch);
+        $("#app").val(currentHost.appCode);
+        $("#host").val(currentHost.host + ":" + currentHost.port);
+        $(".file-panel").show();
+        $("#splitter-handle").show();
+
+        // subString className to get fileName
+        var fileName = className.substring(className.lastIndexOf(".")) + ".java";
+        fetch("http://127.0.0.1:9999/getFileContent?project=" + encodeURI(project) + "&" + "className=" + encodeURI(className)).then(function (response) {
+            response.text().then(function (text) {
+                buildFileContent(fileName, JSON.parse(text).data);
+                decompilerFile = true;
+            });
+        });
     }
 
     function buildMavenSourceFileContent(filename, fileContent) {
@@ -219,17 +254,17 @@ $(document).ready(function () {
             var lineNumber = $("<div></div>").addClass("number").append($("<span></span>").append(index + 1));
             var codeLine = $("<div></div>").addClass("line").append($("<span></span>").addClass("code-content").append(value));
             lineNumber.click(function () {
-                if (decompilerFile) {
-                    var key = linePrefix + (index + 1);
-                    var line = lineMapping[key];
-                    if (line != null && line != undefined && line.length > 0) {
-                        $("#code-line").val(Number(line[0]));
-                    } else {
-                        $("#code-line").val("");
-                    }
-                } else {
+                // if (decompilerFile) {
+                //     var key = linePrefix + (index + 1);
+                //     var line = lineMapping[key];
+                //     if (line != null && line != undefined && line.length > 0) {
+                //         $("#code-line").val(Number(line[0]));
+                //     } else {
+                //         $("#code-line").val("");
+                //     }
+                // } else {
                     $("#code-line").val(index + 1);
-                }
+                // }
                 $("#file-path").val(currentFile + ":" + (index + 1));
                 $(".number").removeClass("selected");
                 $(this).addClass("selected")
@@ -289,7 +324,7 @@ $(document).ready(function () {
             },
             success: function (res) {
                 if (res.status == 0) {
-                    buildFilePanel(res.data);
+                    buildFilePanel(project, currentClass, res.data);
                 } else {
                     console.log(res.message)
                     if (func) {
@@ -334,6 +369,7 @@ $(document).ready(function () {
                         downSource(mavenInfo, className);
                     })
                     decompileClass(className, data.classPath);
+
                 } else {
                     console.log(res.message)
                     //此时不展示下载源码按钮，文件是存在的，但是读取失败
@@ -498,6 +534,27 @@ $(document).ready(function () {
             enableBreakPoint();
         }
     }
+    function handleResultWithRequest(className, classPath, content) {
+        if (!content) {
+            return;
+        }
+        var result = JSON.parse(content);
+        if (!result) {
+            return;
+        }
+        keepRunning = false;
+        var resType = result.type;
+        if (resType == "decompilerclass") {
+            var res = result.data;
+            if (res.code == 0) {
+                buildDecompilerFileContent(currentAppCode, className);
+            } else {
+                bistoury.error(res.message)
+                console.log(res.message)
+            }
+        }
+
+    }
 
     function handleResult(content) {
         if (!content) {
@@ -563,6 +620,12 @@ $(document).ready(function () {
             if (res.code == 0) {
                 if (res.data && res.data.maven) {
                     getFileFromMaven(res.id, res.data);
+                    var mavenInfo = res.data.mavenInfo
+                    var project = mavenProjectMap[mavenInfo.groupId][mavenInfo.artifactId]
+                    if (!project) {
+                        return false;
+                    }
+                    buildLocalFileContent(project, res.id)
                 } else {
                     decompileClass(res.id, res.data.classPath);
                 }
@@ -574,6 +637,7 @@ $(document).ready(function () {
             var res = result.data;
             if (res.code == 0) {
                 buildDecompilerFileContent(res.id, res.data);
+                console.error("old decompilerclass")
             } else {
                 bistoury.error(res.message)
                 console.log(res.message)
@@ -625,6 +689,7 @@ $(document).ready(function () {
                     var relaeaseInfo = res.data;
                     console.log(relaeaseInfo);
                     currentProject = relaeaseInfo.project;
+                    currentProjectId = relaeaseInfo.projectId;
                     currentModule = relaeaseInfo.module;
                     currentBranch = relaeaseInfo.output;
                 } else {
@@ -959,8 +1024,8 @@ $(document).ready(function () {
             $("#down-source").hide();
             $("#down-source").unbind("click");
 
-            if (currentProject && currentBranch) {
-                getFile(currentProject, currentBranch, currentModule, currentClass, function () {
+            if (currentProjectId && currentBranch) {
+                getFile(currentProjectId, currentBranch, currentModule, currentClass, function () {
                     getClassPath(currentClass)
                 })
             } else {

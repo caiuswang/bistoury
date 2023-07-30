@@ -20,8 +20,8 @@ package qunar.tc.bistoury.ui.git;
 import com.google.common.base.Strings;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.GitlabAPIException;
-import org.gitlab.api.http.Query;
 import org.gitlab.api.models.GitlabProject;
+import org.gitlab.api.models.GitlabRepositoryFile;
 import qunar.tc.bistoury.serverside.bean.ApiResult;
 import qunar.tc.bistoury.serverside.configuration.DynamicConfig;
 import qunar.tc.bistoury.serverside.metrics.Metrics;
@@ -41,7 +41,7 @@ import java.util.Optional;
  * @date 2019/9/4 16:37
  * @describe
  */
-public class GitlabRepositoryApiImpl implements GitRepositoryApi {
+public class GitlabRepositoryApiImplV4 implements GitRepositoryApi {
 
     private GitPrivateTokenService gitPrivateTokenService;
 
@@ -49,7 +49,7 @@ public class GitlabRepositoryApiImpl implements GitRepositoryApi {
 
     private String gitEndPoint;
 
-    public GitlabRepositoryApiImpl(GitPrivateTokenService privateTokenService, DynamicConfig config) {
+    public GitlabRepositoryApiImplV4(GitPrivateTokenService privateTokenService, DynamicConfig config) {
         this.gitPrivateTokenService = privateTokenService;
         filePathFormat = config.getString("file.path.format", "{0}src/main/java/{1}.java");
         gitEndPoint = config.getString("git.endpoint", "https://gitlab.corp.totok.co");
@@ -70,14 +70,16 @@ public class GitlabRepositoryApiImpl implements GitRepositoryApi {
         try {
             final GitlabAPI api = createGitlabApi();
             final GitlabProject project = api.getProject(projectId);
-            final Query query = new Query().append("file_path", filepath).append("ref", ref);
-            final String url = "/projects/" + project.getId() + "/repository/files" + query.toString();
-            return ResultHelper.success(api.retrieve().to(url, GitlabFile.class));
+            GitlabRepositoryFile repositoryFile = api.getRepositoryFile(project, filepath, ref);
+            return ResultHelper.success(new GitlabFile(repositoryFile.getFileName(), repositoryFile.getFilePath(),
+                    100, repositoryFile.getEncoding(), repositoryFile.getContent(), repositoryFile.getRef(),
+                    repositoryFile.getBlobId(), repositoryFile.getCommitId()
+            ));
         } catch (GitlabAPIException e) {
             Metrics.counter("connect_gitlab_error").inc();
             return ResultHelper.fail(-1, "连接gitlab服务器失败，请核private token", e);
         } catch (FileNotFoundException fnfe) {
-            return ResultHelper.fail(-1, "文件不存在，请核对仓库地址", fnfe);
+            return ResultHelper.fail(-1, "文件不存在，请核对仓库地址" + filepath, fnfe);
         }
     }
 

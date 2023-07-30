@@ -36,6 +36,8 @@ public class ReleaseInfo {
      */
     private String output;
 
+    private String projectId;
+
     public ReleaseInfo() {
     }
 
@@ -43,6 +45,13 @@ public class ReleaseInfo {
         this.project = project;
         this.module = module;
         this.output = output;
+    }
+
+    public ReleaseInfo(String project, String module, String output, String projectId) {
+        this.project = project;
+        this.module = module;
+        this.output = output;
+        this.projectId = projectId;
     }
 
     public String getProject() {
@@ -69,12 +78,21 @@ public class ReleaseInfo {
         this.output = output;
     }
 
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
     @Override
     public String toString() {
         return "ReleaseInfo{" +
                 "project='" + project + '\'' +
                 ", module='" + module + '\'' +
                 ", output='" + output + '\'' +
+                ", projectId='" + projectId + '\'' +
                 '}';
     }
 }

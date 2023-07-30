@@ -9,6 +9,7 @@ import qunar.tc.bistoury.serverside.configuration.local.LocalDynamicConfig;
 import qunar.tc.bistoury.ui.git.GitRepositoryApi;
 import qunar.tc.bistoury.ui.git.GithubRepositoryApiImpl;
 import qunar.tc.bistoury.ui.git.GitlabRepositoryApiImpl;
+import qunar.tc.bistoury.ui.git.GitlabRepositoryApiImplV4;
 import qunar.tc.bistoury.ui.service.GitPrivateTokenService;
 import qunar.tc.bistoury.ui.service.GitRepositoryStoreService;
 
@@ -31,7 +32,7 @@ public class GitRepositoryStoreServiceImpl implements GitRepositoryStoreService 
     @Autowired
     private GitPrivateTokenService gitPrivateTokenService;
 
-    private static final String GITLAB = "gitlabv3";
+    private static final String GITLAB = "gitlabv4";
     private static final String GITHUB = "github";
     private static final String GIT_KEY = "git.repository";
 
@@ -41,7 +42,7 @@ public class GitRepositoryStoreServiceImpl implements GitRepositoryStoreService 
     public void init() {
         DynamicConfig<LocalDynamicConfig> dynamicConfig = DynamicConfigLoader.load("config.properties");
         gitRepository = dynamicConfig.getString(GIT_KEY, "");
-        gitlabRepositoryApiImpl = new GitlabRepositoryApiImpl(gitPrivateTokenService, dynamicConfig);
+        gitlabRepositoryApiImpl = new GitlabRepositoryApiImplV4(gitPrivateTokenService, dynamicConfig);
         githubRepositoryApiImpl = new GithubRepositoryApiImpl(gitPrivateTokenService, dynamicConfig);
     }
 
