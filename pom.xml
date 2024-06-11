@@ -60,6 +60,7 @@
         <module>bistoury-ui-service</module>
         <module>bistoury-ui-service-impl</module>
         <module>bistoury-application</module>
+        <module>bistoury-wrapper</module>
     </modules>
 
     <properties>
@@ -664,4 +665,16 @@
         </plugins>
 
     </build>
+    <profiles>
+        <profile>
+            <id>dev1</id>
+            <properties>
+                <profile.name>dev1</profile.name>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+    </profiles>
+
 </project>

@@ -1,0 +1,3 @@
+#!/bin/bash
+AGENT_HOSTNAME="nlq1"
+AGENT_HOSTIP="10.210.0.16"
